@@ -34,27 +34,28 @@ st.markdown(
 .eq-escudo { height:46px; max-width:60px; object-fit:contain; display:inline-block; }
 .eq-nombre { font-weight:700; font-size:.95rem; margin-top:4px; }
 
-/* La fila del marcador y la fila de botones NO se apilan en celular */
-div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]),
-div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]) {
+/* Solo las filas INTERNAS de cada partido (marcador y botones) no se apilan en celular.
+   Las columnas Grupo A | Grupo B sí se apilan: 1 partido por fila en celular, 2x2 en computador. */
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]):not(:has(div[data-testid="stHorizontalBlock"])),
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]):not(:has(div[data-testid="stHorizontalBlock"])) {
     flex-wrap: nowrap !important;
-    gap: .4rem !important;
+    gap: .5rem !important;
 }
-div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]) > div[data-testid="stColumn"],
-div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]) > div[data-testid="stColumn"] {
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"],
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"] {
     min-width: 0 !important;
 }
 
 @media (max-width: 640px) {
-    .block-container { padding-left: .6rem !important; padding-right: .6rem !important; }
-    .eq-escudo { height:34px; max-width:44px; }
-    .eq-nombre { font-size:.72rem; }
+    .block-container { padding-left: .8rem !important; padding-right: .8rem !important; }
+    .eq-escudo { height:42px; max-width:52px; }
+    .eq-nombre { font-size:.82rem; }
     [class*="st-key-gl_"] [data-testid="stNumberInputStepUp"],
     [class*="st-key-gl_"] [data-testid="stNumberInputStepDown"],
     [class*="st-key-gv_"] [data-testid="stNumberInputStepUp"],
     [class*="st-key-gv_"] [data-testid="stNumberInputStepDown"] { display:none; }
     [class*="st-key-gl_"] input, [class*="st-key-gv_"] input { text-align:center; padding-left:.2rem; padding-right:.2rem; }
-    [class*="st-key-b_"] button { padding:.3rem .1rem; font-size:.74rem; min-height:0; }
+    [class*="st-key-b_"] button { padding:.35rem .2rem; font-size:.8rem; min-height:0; }
 }
 </style>
 """,
