@@ -105,9 +105,10 @@ def final_ida_vuelta(rng, elo, t1, t2):
 
 def fase_final(rng, elo, grupos_partidos, semillas=(), pts_previos=None):
     """grupos_partidos: {'A': [(h,a,gl|None,gv|None)...], 'B': ...} -> dict con todo."""
-    tablas, ganadores = {}, {}
+    tablas, ganadores, completos = {}, {}, {}
     for g, partidos in grupos_partidos.items():
-        tab = tabla(completar(rng, elo, partidos))
+        completos[g] = completar(rng, elo, partidos)
+        tab = tabla(completos[g])
         orden = ordenar(rng, tab, semillas)
         tablas[g] = (tab, orden)
         ganadores[g] = orden[0]
@@ -118,7 +119,7 @@ def fase_final(rng, elo, grupos_partidos, semillas=(), pts_previos=None):
     kb = (pp.get(wb, 0) + tb["PTS"], tb["GF"] - tb["GC"], tb["GF"])
     t1, t2 = (wa, wb) if ka >= kb else (wb, wa)
     final = final_ida_vuelta(rng, elo, t1, t2)
-    return {"tablas": tablas, "ganadores": ganadores, "final": final, "campeon": final["campeon"]}
+    return {"tablas": tablas, "ganadores": ganadores, "final": final, "campeon": final["campeon"], "partidos": completos}
 
 
 # ---------- Campeonato desde cero ----------

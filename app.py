@@ -183,34 +183,68 @@ def partidos(grupo):
     return out
 
 GP = {g: partidos(g) for g in GRUPOS}
-jugados = sum(1 for p in GP.values() for m in p if m[2] is not None and m[3] is not None)
-st.progress(jugados / 24, text=f"{jugados}/24 partidos jugados")
+# --- Simulación: rellena las tarjetas de las fechas ---
+# st.session_state.sim = {indice_partido: (gl, gv)} marca qué marcadores fueron simulados (no reales).
+INDICES = {g: [i for i, (f, gg, l, v) in enumerate(FIXTURE_CUADRANGULARES) if gg == g] for g in GRUPOS}
 
-# --- Simulación: se guarda junto con los marcadores con los que se hizo ---
-firma = repr(GP)
-c1, c2 = st.columns(2)
-if c1.button("▶️ Simular lo que falta", type="primary", width="stretch"):
-    st.session_state.una = (firma, eng.fase_final(get_rng(), ELO, GP, SEMILLAS, PTS_FASE_REGULAR))
-if c2.button("↩️ Ver tabla con resultados reales", width="stretch"):
+
+def marcador(i):
+    return (st.session_state.get(f"gl_{i}"), st.session_state.get(f"gv_{i}"))
+
+
+def reales():
+    """Marcadores reales: los escritos por ti. Si un marcador sigue igual a como lo dejó la simulación, no cuenta como real."""
+    sim = st.session_state.get("sim", {})
+    return {i: (None, None) if (i in sim and marcador(i) == sim[i]) else marcador(i) for i in range(len(FIXTURE_CUADRANGULARES))}
+
+
+def simular():
+    r = reales()
+    gp = {g: [(FIXTURE_CUADRANGULARES[i][2], FIXTURE_CUADRANGULARES[i][3], *r[i]) for i in idx] for g, idx in INDICES.items()}
+    res = eng.fase_final(get_rng(), ELO, gp, SEMILLAS, PTS_FASE_REGULAR)
+    sim = {}
+    for g, idx in INDICES.items():
+        for pos, i in enumerate(idx):
+            if r[i] == (None, None):
+                gl, gv = res["partidos"][g][pos][2:]
+                st.session_state[f"gl_{i}"], st.session_state[f"gv_{i}"] = gl, gv
+                sim[i] = (gl, gv)
+    st.session_state.sim = sim
+    st.session_state.una = (tuple(marcador(i) for i in range(len(FIXTURE_CUADRANGULARES))), res)
+
+
+def borrar_simulacion():
+    for i, v in st.session_state.get("sim", {}).items():
+        if marcador(i) == v:  # solo borra lo simulado; lo que escribiste tú se queda
+            st.session_state[f"gl_{i}"] = st.session_state[f"gv_{i}"] = None
+    st.session_state.sim = {}
     st.session_state.pop("una", None)
 
-una = st.session_state.get("una")
-sim = una[1] if una and una[0] == firma else None  # si cambias un marcador, la simulación vieja se descarta
 
-# --- Tablas: reales, o proyectadas si se simuló ---
-st.subheader("Tabla proyectada (simulación)" if sim else "Tabla actual")
+jugados = sum(1 for v in reales().values() if v[0] is not None and v[1] is not None)  # solo cuentan los reales
+st.progress(jugados / 24, text=f"{jugados}/24 partidos jugados")
+
+c1, c2 = st.columns(2)
+c1.button("▶️ Simular lo que falta", type="primary", width="stretch", on_click=simular)
+c2.button("↩️ Borrar simulación", width="stretch", on_click=borrar_simulacion)
+
+n_sim = sum(1 for i, v in st.session_state.get("sim", {}).items() if resultados[i] == v)
+una = st.session_state.get("una")
+firma_actual = tuple(resultados[i] for i in range(len(FIXTURE_CUADRANGULARES)))
+res_final = una[1] if una and una[0] == firma_actual else None  # la final solo se muestra si nada cambió desde la simulación
+
+# --- Tablas (con lo real + lo simulado que haya en las tarjetas) ---
+st.subheader("Tabla proyectada (simulación)" if n_sim else "Tabla actual")
 st.caption(f"Punto invisible: {' y '.join(CABEZAS_DE_SERIE)} (cabezas de serie) ganan el desempate si igualan en puntos en el 1.er lugar de su grupo.")
 cols = st.columns(2)
 for c, g in zip(cols, GRUPOS):
-    if sim:
-        tab, orden = sim["tablas"][g]
-    else:
-        tab = eng.tabla(GP[g])
-        orden = sorted(tab, key=lambda t: (tab[t]["PTS"] + (0.5 if t in SEMILLAS else 0), tab[t]["GF"] - tab[t]["GC"], tab[t]["GF"]), reverse=True)
+    tab = eng.tabla(GP[g])
+    orden = sorted(tab, key=lambda t: (tab[t]["PTS"] + (0.5 if t in SEMILLAS else 0), tab[t]["GF"] - tab[t]["GC"], tab[t]["GF"]), reverse=True)
     c.markdown(f"**Grupo {g}**")
     tabla_ui(eng.a_df(tab, orden), caja=c)
 
-if sim:
-    st.caption("Los partidos que faltaban fueron simulados; los que ya tienen marcador se respetan.")
+if n_sim:
+    st.caption(f"{n_sim} partidos simulados; los que ya tenían marcador se respetaron. Si cambias un marcador, ese pasa a contar como real.")
+if res_final:
     st.subheader("Final")
-    mostrar_final(sim)
+    mostrar_final(res_final)
