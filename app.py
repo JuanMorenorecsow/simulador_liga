@@ -25,6 +25,42 @@ if _TROFEO:
 else:
     st.title("⚽ Simulador de Cuadrangulares 2026-II")
 
+
+# ---------------- Estilos (incluye vista de celular) ----------------
+st.markdown(
+    """
+<style>
+.eq { text-align:center; line-height:1.15; }
+.eq-escudo { height:46px; max-width:60px; object-fit:contain; display:inline-block; }
+.eq-nombre { font-weight:700; font-size:.95rem; margin-top:4px; }
+
+/* La fila del marcador y la fila de botones NO se apilan en celular */
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]),
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]) {
+    flex-wrap: nowrap !important;
+    gap: .4rem !important;
+}
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-gl_"]) > div[data-testid="stColumn"],
+div[data-testid="stHorizontalBlock"]:has([class*="st-key-b_Local_"]) > div[data-testid="stColumn"] {
+    min-width: 0 !important;
+}
+
+@media (max-width: 640px) {
+    .block-container { padding-left: .6rem !important; padding-right: .6rem !important; }
+    .eq-escudo { height:34px; max-width:44px; }
+    .eq-nombre { font-size:.72rem; }
+    [class*="st-key-gl_"] [data-testid="stNumberInputStepUp"],
+    [class*="st-key-gl_"] [data-testid="stNumberInputStepDown"],
+    [class*="st-key-gv_"] [data-testid="stNumberInputStepUp"],
+    [class*="st-key-gv_"] [data-testid="stNumberInputStepDown"] { display:none; }
+    [class*="st-key-gl_"] input, [class*="st-key-gv_"] input { text-align:center; padding-left:.2rem; padding-right:.2rem; }
+    [class*="st-key-b_"] button { padding:.3rem .1rem; font-size:.74rem; min-height:0; }
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 # ---------------- Sidebar: ratings y semilla ----------------
 st.sidebar.header("⚙️ Configuración")
 seed = st.sidebar.number_input("Semilla (0 = aleatoria)", min_value=0, value=0, step=1)
@@ -98,9 +134,9 @@ def mostrar_final(res):
 
 def equipo_html(nombre):
     src = escudo(nombre)
-    img = f'<img src="{src}" style="height:46px;max-width:60px;object-fit:contain">' if src else '<div style="height:46px"></div>'
-    return (f'<div style="text-align:center;line-height:1.2">{img}'
-            f'<div style="font-weight:700;font-size:.95rem;margin-top:4px">{nombre}</div></div>')
+    img = f'<img class="eq-escudo" src="{src}">' if src else '<div class="eq-escudo"></div>'
+    return f'<div class="eq">{img}<div class="eq-nombre">{nombre}</div></div>'
+
 
 def fijar(i, goles_l, goles_v):
     """Callback de los botones: escribe el marcador en las casillas del partido i."""
@@ -117,9 +153,9 @@ def botones_resultado(i, gl, gv):
     cols[3].button("↺", key=f"b_clear_{i}", width="stretch", on_click=fijar, args=(i, None, None), help="Limpiar marcador")
 
 resultados = {}  # índice del partido -> (gl, gv)
-for n in range(1, 7):
-    with st.container(border=True):
-        st.subheader(f"Fecha {n}")
+tabs_fecha = st.tabs([f"Fecha {n}" for n in range(1, 7)])
+for n, tf in enumerate(tabs_fecha, start=1):
+    with tf:
         cols_grupo = st.columns(2)
         for col, g in zip(cols_grupo, GRUPOS):
             with col:
@@ -127,8 +163,8 @@ for n in range(1, 7):
                     if fecha != n or grupo != g:
                         continue
                     with st.container(border=True):
-                        st.markdown(f"<div style='text-align:center;opacity:.7;font-size:.85rem'>Grupo {grupo}</div>", unsafe_allow_html=True)
-                        c_l, c_gl, c_sep, c_gv, c_v = st.columns([3, 1.3, 0.3, 1.3, 3], vertical_alignment="center")
+                        st.markdown(f"<div style='text-align:center;opacity:.7;font-size:.85rem'>Fecha {fecha} · Grupo {grupo}</div>", unsafe_allow_html=True)
+                        c_l, c_gl, c_sep, c_gv, c_v = st.columns([2.2, 1.5, 0.3, 1.5, 2.2], vertical_alignment="center")
                         c_l.markdown(equipo_html(loc), unsafe_allow_html=True)
                         gl = c_gl.number_input("Goles local", min_value=0, max_value=20, value=None, step=1, placeholder="-", key=f"gl_{i}", label_visibility="collapsed")
                         c_sep.markdown("<div style='text-align:center;font-size:1.4rem'>:</div>", unsafe_allow_html=True)
