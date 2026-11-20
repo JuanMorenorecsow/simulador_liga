@@ -186,34 +186,31 @@ GP = {g: partidos(g) for g in GRUPOS}
 jugados = sum(1 for p in GP.values() for m in p if m[2] is not None and m[3] is not None)
 st.progress(jugados / 24, text=f"{jugados}/24 partidos jugados")
 
-st.subheader("Tabla actual")
+# --- Simulación: se guarda junto con los marcadores con los que se hizo ---
+firma = repr(GP)
+c1, c2 = st.columns(2)
+if c1.button("▶️ Simular lo que falta", type="primary", width="stretch"):
+    st.session_state.una = (firma, eng.fase_final(get_rng(), ELO, GP, SEMILLAS, PTS_FASE_REGULAR))
+if c2.button("↩️ Ver tabla con resultados reales", width="stretch"):
+    st.session_state.pop("una", None)
+
+una = st.session_state.get("una")
+sim = una[1] if una and una[0] == firma else None  # si cambias un marcador, la simulación vieja se descarta
+
+# --- Tablas: reales, o proyectadas si se simuló ---
+st.subheader("Tabla proyectada (simulación)" if sim else "Tabla actual")
 st.caption(f"Punto invisible: {' y '.join(CABEZAS_DE_SERIE)} (cabezas de serie) ganan el desempate si igualan en puntos en el 1.er lugar de su grupo.")
 cols = st.columns(2)
 for c, g in zip(cols, GRUPOS):
-    tab = eng.tabla(GP[g])
-    orden = sorted(tab, key=lambda t: (tab[t]["PTS"] + (0.5 if t in SEMILLAS else 0), tab[t]["GF"] - tab[t]["GC"], tab[t]["GF"]), reverse=True)
+    if sim:
+        tab, orden = sim["tablas"][g]
+    else:
+        tab = eng.tabla(GP[g])
+        orden = sorted(tab, key=lambda t: (tab[t]["PTS"] + (0.5 if t in SEMILLAS else 0), tab[t]["GF"] - tab[t]["GC"], tab[t]["GF"]), reverse=True)
     c.markdown(f"**Grupo {g}**")
     tabla_ui(eng.a_df(tab, orden), caja=c)
 
-st.subheader("Proyección")
-c1, c2 = st.columns(2)
-if c1.button("▶️ Simular lo que falta (una vez)", type="primary"):
-    st.session_state.una = eng.fase_final(get_rng(), ELO, GP, SEMILLAS, PTS_FASE_REGULAR)
-n2 = c2.slider("Simulaciones Monte Carlo", 1000, 50000, 10000, step=1000)
-if c2.button("🎲 Calcular probabilidades de título"):
-    with st.spinner("Simulando…"):
-        st.session_state.mc2 = eng.montecarlo_cuadrangulares(get_rng(), ELO, GP, n2, SEMILLAS, PTS_FASE_REGULAR)
-
-if "una" in st.session_state:
-    u = st.session_state.una
-    cols = st.columns(2)
-    for c, g in zip(cols, GRUPOS):
-        tab, orden = u["tablas"][g]
-        c.markdown(f"**Grupo {g} proyectado**")
-        tabla_ui(eng.a_df(tab, orden), caja=c)
-    mostrar_final(u)
-if "mc2" in st.session_state:
-    df = st.session_state.mc2
-    tabla_ui(df.rename(columns={"Gana_grupo": "% Gana grupo (finalista)", "Campeón": "% Campeón", "PTS_prom": "Pts. prom."}))
-    st.bar_chart(df["Campeón"].rename("% Campeón"))
-st.caption("Nota: si cambias marcadores, vuelve a pulsar los botones para recalcular.")
+if sim:
+    st.caption("Los partidos que faltaban fueron simulados; los que ya tienen marcador se respetan.")
+    st.subheader("Final")
+    mostrar_final(sim)
