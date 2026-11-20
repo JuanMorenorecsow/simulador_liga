@@ -75,7 +75,7 @@ def ordenar(rng, tab, semillas=()):
 
 def a_df(tab, orden):
     filas = [{"Pos": k + 1, "Equipo": t, **tab[t], "DG": tab[t]["GF"] - tab[t]["GC"]} for k, t in enumerate(orden)]
-    cols = ["Pos", "Equipo", "PJ", "G", "E", "P", "GF", "GC", "DG", "PTS"]
+    cols = ["Pos", "Equipo", "PJ", "PTS", "G", "E", "P", "GF", "GC", "DG"]
     return pd.DataFrame(filas)[cols]
 
 
